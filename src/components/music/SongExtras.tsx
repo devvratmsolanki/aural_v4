@@ -118,7 +118,6 @@ export const SongExtras = ({ songId, section = "all", listenSeconds = 0 }: Props
   const [lTitle, setLTitle] = useState("");
   const [lBody, setLBody] = useState("");
   const [profiles, setProfiles] = useState<Record<string, string>>({});
-  const [adminIds, setAdminIds] = useState<string[]>([]);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const recTimerRef = useRef<number | null>(null);
@@ -127,11 +126,10 @@ export const SongExtras = ({ songId, section = "all", listenSeconds = 0 }: Props
   const remaining = Math.max(0, UNLOCK_AFTER - Math.floor(listenSeconds));
 
   const load = async () => {
-    const [{ data: vn }, { data: lt }, { data: pr }, { data: adminRoles }] = await Promise.all([
+    const [{ data: vn }, { data: lt }, { data: pr }] = await Promise.all([
       supabase.from("song_voice_notes").select("*").eq("song_id", songId).order("created_at", { ascending: false }),
       supabase.from("song_letters").select("*").eq("song_id", songId).order("created_at", { ascending: false }),
       supabase.from("profiles").select("id, name"),
-      supabase.from("user_roles").select("user_id, created_at").eq("role", "admin").order("created_at", { ascending: false }),
     ]);
     setNotes((vn as any) ?? []);
     setLetters((lt as any) ?? []);
@@ -139,7 +137,6 @@ export const SongExtras = ({ songId, section = "all", listenSeconds = 0 }: Props
     const map: Record<string, string> = {};
     (pr ?? []).forEach((p: any) => { map[p.id] = p.name || "Unknown"; });
     setProfiles(map);
-    setAdminIds(((adminRoles as any[]) ?? []).map((r: any) => r.user_id));
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [songId]);
@@ -158,19 +155,10 @@ export const SongExtras = ({ songId, section = "all", listenSeconds = 0 }: Props
     })();
   }, [unlockedByListen, letters, user]);
 
-  const primaryAdminId = adminIds[0] ?? null;
-
   const labelFor = (id: string) => profiles[id] ?? "…";
-  const recipientId = (fromId: string) => {
-    const senderIsAdmin = adminIds.includes(fromId);
-    if (senderIsAdmin) {
-      // recipient = the non-admin (sunshine)
-      const other = Object.keys(profiles).find((id) => !adminIds.includes(id));
-      return other ?? fromId;
-    }
-    // sender is sunshine → recipient is the active admin (most recent)
-    return primaryAdminId ?? fromId;
-  };
+  // Two-person app: the recipient is always the other person
+  const recipientId = (fromId: string) =>
+    Object.keys(profiles).find((id) => id !== fromId) ?? fromId;
 
   const pickMime = () => {
     const candidates = [
