@@ -59,7 +59,12 @@ const AdminUsers = () => {
       body: { name: form.name || form.username, email: usernameToEmail(form.username), password: form.password, admin: form.admin },
     });
     setBusy(false);
-    if (error || (data as any)?.error) { toast.error(error?.message ?? (data as any).error); return; }
+    if (error) {
+      let msg = error.message;
+      try { const body = await (error as any).context?.json?.(); if (body?.error) msg = body.error; } catch {}
+      toast.error(msg); return;
+    }
+    if ((data as any)?.error) { toast.error((data as any).error); return; }
     toast.success("User created");
     setOpen(false); setForm({ name: "", username: "", password: "", admin: false }); load();
   };
