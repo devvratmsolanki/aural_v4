@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Lock, Unlock, ScrollText, Plus, ArrowRight } from "lucide-react";
+import { Trash2, Lock, Unlock, ScrollText, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props { songId: string; songTitle?: string; listenSeconds?: number }
@@ -13,34 +13,37 @@ const UNLOCK_AFTER = 30;
 
 interface Letter { id: string; author_id: string; title: string | null; body: string; unlocked: boolean; created_at: string }
 
+const fmtDate = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+    + " · " + d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+};
+
 export const SongExtras = ({ songId, songTitle = "", listenSeconds = 0 }: Props) => {
-  const { user, profile } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [letters, setLetters] = useState<Letter[]>([]);
   const [showLetterForm, setShowLetterForm] = useState(false);
   const [lTitle, setLTitle] = useState("");
   const [lBody, setLBody] = useState("");
-  const [profiles, setProfiles] = useState<Record<string, string>>({});
 
   const unlockedByListen = listenSeconds >= UNLOCK_AFTER;
   const remaining = Math.max(0, UNLOCK_AFTER - Math.floor(listenSeconds));
 
   const load = async () => {
-    const [{ data: lt }, { data: pr }] = await Promise.all([
-      supabase.from("song_letters").select("*").eq("song_id", songId).order("created_at", { ascending: false }),
-      supabase.from("profiles").select("id, name"),
-    ]);
-    setLetters((lt as any) ?? []);
-    const map: Record<string, string> = {};
-    (pr ?? []).forEach((p: any) => { map[p.id] = p.name || "Unknown"; });
-    setProfiles(map);
+    const { data } = await supabase
+      .from("song_letters")
+      .select("*")
+      .eq("song_id", songId)
+      .order("created_at", { ascending: false });
+    setLetters((data as any) ?? []);
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [songId]);
 
   // Persist unlock once listener crosses 30s threshold
   useEffect(() => {
-    if (!unlockedByListen || !user) return;
-    const toUnlock = letters.filter((l) => !l.unlocked && l.author_id !== user.id);
+    if (!unlockedByListen || !user || isAdmin) return;
+    const toUnlock = letters.filter((l) => !l.unlocked);
     if (!toUnlock.length) return;
     (async () => {
       await supabase
@@ -49,11 +52,7 @@ export const SongExtras = ({ songId, songTitle = "", listenSeconds = 0 }: Props)
         .in("id", toUnlock.map((l) => l.id));
       setLetters((prev) => prev.map((l) => toUnlock.find((u) => u.id === l.id) ? { ...l, unlocked: true } : l));
     })();
-  }, [unlockedByListen, letters, user]);
-
-  const labelFor = (id: string) => profiles[id] ?? "…";
-  const recipientId = (fromId: string) =>
-    Object.keys(profiles).find((id) => id !== fromId) ?? fromId;
+  }, [unlockedByListen, letters, user, isAdmin]);
 
   const sendNotification = async () => {
     if (!user) return;
@@ -90,30 +89,19 @@ export const SongExtras = ({ songId, songTitle = "", listenSeconds = 0 }: Props)
     load();
   };
 
-  const SenderReceiver = ({ fromId }: { fromId: string }) => {
-    const toId = recipientId(fromId);
-    return (
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-muted-foreground flex-wrap">
-        <span className="text-muted-foreground/70">From</span>
-        <span className="text-foreground/80 normal-case tracking-normal">{labelFor(fromId)}</span>
-        <ArrowRight className="h-3 w-3" />
-        <span className="text-muted-foreground/70">To</span>
-        <span className="text-foreground/80 normal-case tracking-normal">{labelFor(toId)}</span>
-      </div>
-    );
-  };
-
   return (
     <div className="mt-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
           <ScrollText className="h-3.5 w-3.5 text-primary" /> Letters
         </div>
-        <Button size="sm" variant="ghost" onClick={() => setShowLetterForm((v) => !v)}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Write
-        </Button>
+        {isAdmin && (
+          <Button size="sm" variant="ghost" onClick={() => setShowLetterForm((v) => !v)}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Write
+          </Button>
+        )}
       </div>
-      {showLetterForm && (
+      {isAdmin && showLetterForm && (
         <div className="space-y-2 mb-4 p-3 rounded-sm border border-primary/30 bg-primary/5">
           <Input placeholder="Title (optional)" value={lTitle} onChange={(e) => setLTitle(e.target.value)} maxLength={120} />
           <Textarea placeholder="A long letter, sealed until they play this song…" value={lBody} onChange={(e) => setLBody(e.target.value)} rows={5} maxLength={4000} />
@@ -128,19 +116,20 @@ export const SongExtras = ({ songId, songTitle = "", listenSeconds = 0 }: Props)
       )}
       <div className="space-y-3">
         {letters.map((l) => {
-          const mine = l.author_id === user?.id;
-          const visible = mine || l.unlocked || unlockedByListen;
+          const visible = isAdmin || l.unlocked || unlockedByListen;
           return (
             <div key={l.id} className="rounded-sm border border-border p-3 bg-popover/30">
               <div className="flex items-center justify-between mb-2 gap-2">
-                <SenderReceiver fromId={l.author_id} />
+                <span className="text-[10px] text-muted-foreground">{fmtDate(l.created_at)}</span>
                 <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
                   {visible ? <Unlock className="h-3 w-3 text-primary" /> : <Lock className="h-3 w-3" />}
-                  {mine ? "You wrote" : visible ? "Unlocked" : "Sealed"}
+                  {isAdmin ? "You wrote" : visible ? "Unlocked" : "Sealed"}
                 </div>
-                <button onClick={() => deleteLetter(l.id)} className="text-muted-foreground hover:text-destructive">
-                  <Trash2 className="h-3 w-3" />
-                </button>
+                {isAdmin && (
+                  <button onClick={() => deleteLetter(l.id)} className="text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
               </div>
               {l.title && <div className="text-sm font-medium mb-1">{l.title}</div>}
               {visible ? (

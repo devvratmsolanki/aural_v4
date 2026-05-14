@@ -119,8 +119,8 @@ export const Topbar = () => {
           <Search className="h-4 w-4 text-silver" />
         </Link>
 
-        {/* Notification bell */}
-        {user && (
+        {/* Notification bell — only for non-admin users */}
+        {user && !isAdmin && (
           <Popover onOpenChange={(open) => { if (open) markAllRead(); }}>
             <PopoverTrigger asChild>
               <button className="relative size-9 rounded-full bg-popover border border-border flex items-center justify-center hover:border-primary transition-colors" aria-label="Notifications">
