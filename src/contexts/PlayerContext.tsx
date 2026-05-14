@@ -151,6 +151,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [position, current]);
 
+  // stop on logout
+  useEffect(() => {
+    const handler = () => { audioRef.current?.pause(); };
+    window.addEventListener("aural:stop", handler);
+    return () => window.removeEventListener("aural:stop", handler);
+  }, []);
+
   const seek = (s: number) => {
     if (audioRef.current) audioRef.current.currentTime = s;
   };

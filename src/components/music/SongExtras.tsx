@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlayer } from "@/contexts/PlayerContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -107,6 +108,7 @@ const VoiceNotePlayer = ({ path }: { path: string }) => {
 
 export const SongExtras = ({ songId, section = "all", listenSeconds = 0 }: Props) => {
   const { user, isAdmin } = useAuth();
+  const { isPlaying, toggle: playerToggle } = usePlayer();
   const [notes, setNotes] = useState<VoiceNote[]>([]);
   const [letters, setLetters] = useState<Letter[]>([]);
   const [recording, setRecording] = useState(false);
@@ -116,6 +118,7 @@ export const SongExtras = ({ songId, section = "all", listenSeconds = 0 }: Props
   const [lTitle, setLTitle] = useState("");
   const [lBody, setLBody] = useState("");
   const [profiles, setProfiles] = useState<Record<string, string>>({});
+  const [adminIds, setAdminIds] = useState<string[]>([]);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const recTimerRef = useRef<number | null>(null);
@@ -124,18 +127,19 @@ export const SongExtras = ({ songId, section = "all", listenSeconds = 0 }: Props
   const remaining = Math.max(0, UNLOCK_AFTER - Math.floor(listenSeconds));
 
   const load = async () => {
-    const [{ data: vn }, { data: lt }] = await Promise.all([
+    const [{ data: vn }, { data: lt }, { data: pr }, { data: adminRoles }] = await Promise.all([
       supabase.from("song_voice_notes").select("*").eq("song_id", songId).order("created_at", { ascending: false }),
       supabase.from("song_letters").select("*").eq("song_id", songId).order("created_at", { ascending: false }),
+      supabase.from("profiles").select("id, name"),
+      supabase.from("user_roles").select("user_id, created_at").eq("role", "admin").order("created_at", { ascending: false }),
     ]);
     setNotes((vn as any) ?? []);
     setLetters((lt as any) ?? []);
 
-    // Fetch all profile names so we can show sender/receiver labels
-    const { data: pr } = await supabase.from("profiles").select("id, name");
     const map: Record<string, string> = {};
     (pr ?? []).forEach((p: any) => { map[p.id] = p.name || "Unknown"; });
     setProfiles(map);
+    setAdminIds(((adminRoles as any[]) ?? []).map((r: any) => r.user_id));
   };
 
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [songId]);
@@ -154,21 +158,7 @@ export const SongExtras = ({ songId, section = "all", listenSeconds = 0 }: Props
     })();
   }, [unlockedByListen, letters, user]);
 
-  // Two-person app: admin <-> sunshine. Resolve the "other party" by role.
-  // There may be more than one admin account historically; we treat the most
-  // recently created admin as the active one (e.g. "PJ" over a stale "Admin").
-  const [adminIds, setAdminIds] = useState<string[]>([]);
   const primaryAdminId = adminIds[0] ?? null;
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("user_id, created_at")
-        .eq("role", "admin")
-        .order("created_at", { ascending: false });
-      setAdminIds(((data as any[]) ?? []).map((r) => r.user_id));
-    })();
-  }, []);
 
   const labelFor = (id: string) => profiles[id] ?? "…";
   const recipientId = (fromId: string) => {
@@ -199,6 +189,7 @@ export const SongExtras = ({ songId, section = "all", listenSeconds = 0 }: Props
   };
 
   const startRec = async () => {
+    if (isPlaying) playerToggle(); // pause background music while recording
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mime = pickMime();
