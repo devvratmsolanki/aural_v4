@@ -30,6 +30,9 @@ const useSwipeDownClose = (onClose: () => void) => {
   };
 };
 
+// iOS Safari doesn't allow programmatic volume control
+const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+
 export const Player = () => {
   const { current, isPlaying, position, duration, volume, shuffle, loop, toggle, next, prev, seek, setVolume, toggleShuffle, toggleLoop } = usePlayer();
   const { user } = useAuth();
@@ -224,12 +227,14 @@ export const Player = () => {
                 <button onClick={next} className="text-foreground" aria-label="Next"><SkipForward className="h-7 w-7" /></button>
                 <button onClick={toggleLoop} className={`transition-colors ${loop ? "text-primary" : "text-muted-foreground"}`} aria-label="Loop"><Repeat className="h-5 w-5" /></button>
               </div>
-              <div className="flex items-center gap-3 w-full">
-                <button onClick={toggleMute} className="text-muted-foreground hover:text-foreground" aria-label="Mute">
-                  {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                </button>
-                <Slider min={0} max={1} step={0.01} value={[volume]} onValueChange={(v) => setVolume(v[0])} className="flex-1" />
-              </div>
+              {!isIOS && (
+                <div className="flex items-center gap-3 w-full">
+                  <button onClick={toggleMute} className="text-muted-foreground hover:text-foreground" aria-label="Mute">
+                    {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </button>
+                  <Slider min={0} max={1} step={0.01} value={[volume]} onValueChange={(v) => setVolume(v[0])} className="flex-1" />
+                </div>
+              )}
               <div className="flex items-center gap-5 flex-wrap justify-center">
                 <button onClick={() => { setFullOpen(false); setExtrasTab("lyrics"); setExtrasOpen(true); }} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"><Mic2 className="h-4 w-4" /> Lyrics</button>
                 <button onClick={() => { setFullOpen(false); setExtrasTab("letters"); setExtrasOpen(true); }} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"><StickyNote className="h-4 w-4" /> Letters</button>

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, User as UserIcon, Shield, LogOut, Settings, Bell, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCallback, useEffect, useState } from "react";
@@ -30,6 +30,7 @@ interface Notif {
 export const Topbar = () => {
   const [q, setQ] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAdmin, profile, signOut } = useAuth();
   const { current, position, duration } = usePlayer();
   const [notifs, setNotifs] = useState<Notif[]>([]);
@@ -97,7 +98,7 @@ export const Topbar = () => {
         <img src={logo} alt="mySunshine" className="h-7 w-7" />
         <span className="text-base font-display tracking-tight text-primary">mySunshine</span>
       </Link>
-      <form onSubmit={submit} className="hidden md:flex items-center w-full max-w-sm bg-popover rounded-full border border-border px-4 py-2">
+      <form onSubmit={submit} className={`hidden md:flex items-center w-full max-w-sm bg-popover rounded-full border border-border px-4 py-2 ${location.pathname === "/search" ? "invisible pointer-events-none" : ""}`}>
         <Search className="h-4 w-4 text-muted-foreground mr-3" />
         <Input
           value={q}

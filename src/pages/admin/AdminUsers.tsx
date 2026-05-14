@@ -20,15 +20,19 @@ const AdminUsers = () => {
   const [busy, setBusy] = useState(false);
 
   const load = async () => {
-    const [{ data: profiles }, { data: adminRoles }] = await Promise.all([
+    const [{ data: profiles }, { data: adminRoles }, { data: allPlaylists }] = await Promise.all([
       supabase.from("profiles").select("id,name,status").order("created_at", { ascending: true }),
       supabase.from("user_roles").select("user_id").eq("role", "admin"),
+      supabase.from("playlists").select("user_id"),
     ]);
     const adminIds = new Set((adminRoles ?? []).map((r) => r.user_id));
-    const out = await Promise.all((profiles ?? []).map(async (p) => {
-      const { count } = await supabase.from("playlists").select("*", { count: "exact", head: true }).eq("user_id", p.id);
-      return { ...p, playlists: count ?? 0, isAdmin: adminIds.has(p.id) } as Row;
-    }));
+    const playlistCount: Record<string, number> = {};
+    (allPlaylists ?? []).forEach((p: any) => { playlistCount[p.user_id] = (playlistCount[p.user_id] ?? 0) + 1; });
+    const out = (profiles ?? []).map((p) => ({
+      ...p,
+      playlists: playlistCount[p.id] ?? 0,
+      isAdmin: adminIds.has(p.id),
+    })) as Row[];
     setRows(out);
   };
   useEffect(() => { load(); }, []);
