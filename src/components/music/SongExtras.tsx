@@ -1,12 +1,11 @@
 import { Lock, Unlock, StickyNote } from "lucide-react";
 
-interface Props { remarks?: string | null; listenSeconds?: number }
+interface Props { remarks?: string | null; listenSeconds?: number; isAdmin?: boolean; duration?: number }
 
-const UNLOCK_AFTER = 60;
-
-export const SongExtras = ({ remarks, listenSeconds = 0 }: Props) => {
-  const unlocked = listenSeconds >= UNLOCK_AFTER;
-  const remaining = Math.max(0, UNLOCK_AFTER - Math.floor(listenSeconds));
+export const SongExtras = ({ remarks, listenSeconds = 0, isAdmin = false, duration = 0 }: Props) => {
+  const threshold = duration > 0 && duration < 60 ? 30 : 60;
+  const unlocked = isAdmin || listenSeconds >= threshold;
+  const remaining = Math.max(0, threshold - Math.floor(listenSeconds));
 
   return (
     <div className="mt-4">

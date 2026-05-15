@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -85,6 +86,7 @@ const HMSInput = ({ label, value, onChange, allowEmpty = false }: { label: strin
 };
 
 const AdminSongs = () => {
+  const { user, profile } = useAuth();
   const [songs, setSongs] = useState<Song[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [search, setSearch] = useState("");
@@ -139,9 +141,14 @@ const AdminSongs = () => {
         cover_image = path;
       }
 
+      // Track if remarks changed before saving
+      const oldRemarks = form.id ? (songs.find((s) => s.id === form.id)?.remarks ?? null) : null;
+      const newRemarks = form.remarks || null;
+      const remarksBecameSet = !!newRemarks && newRemarks !== oldRemarks;
+
       const payload = {
         title: form.title.slice(0, 200), artist: form.artist.trim() ? form.artist.slice(0, 200) : null,
-        lyrics: form.lyrics, remarks: form.remarks || null, status: form.status, file_path,
+        lyrics: form.lyrics, remarks: newRemarks, status: form.status, file_path,
         cover_image,
         tag_id: form.tag_ids[0] ?? null,
         play_from: form.play_from || 0,
@@ -160,6 +167,25 @@ const AdminSongs = () => {
         await supabase.from("song_tags").delete().eq("song_id", songId);
         if (form.tag_ids.length) {
           await supabase.from("song_tags").insert(form.tag_ids.map((tag_id) => ({ song_id: songId!, tag_id })));
+        }
+      }
+      // Notify all non-admin users when a private note is added or changed
+      if (remarksBecameSet && songId && user) {
+        const { data: adminIds } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+        const adminSet = new Set((adminIds ?? []).map((r: any) => r.user_id));
+        const { data: allProfiles } = await supabase.from("profiles").select("id");
+        const recipients = (allProfiles ?? []).filter((p: any) => !adminSet.has(p.id));
+        if (recipients.length) {
+          await supabase.from("notifications").insert(
+            recipients.map((p: any) => ({
+              recipient_id: p.id,
+              sender_id: user.id,
+              type: "private_note",
+              song_id: songId!,
+              song_title: form.title.slice(0, 200),
+              sender_name: profile?.name ?? "Admin",
+            }))
+          );
         }
       }
       toast.success(form.id ? "Updated" : "Created");

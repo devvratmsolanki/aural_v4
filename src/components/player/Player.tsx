@@ -35,7 +35,7 @@ const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(naviga
 
 export const Player = () => {
   const { current, isPlaying, position, duration, volume, shuffle, loop, toggle, next, prev, seek, setVolume, toggleShuffle, toggleLoop } = usePlayer();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [liked, setLiked] = useState(false);
   const [extrasOpen, setExtrasOpen] = useState(false);
   const [extrasTab, setExtrasTab] = useState<"lyrics" | "notes">("lyrics");
@@ -179,7 +179,7 @@ export const Player = () => {
                   )}
                 </TabsContent>
                 <TabsContent value="notes" className="flex-1 overflow-y-auto px-6 pb-8 mt-2">
-                  <SongExtras remarks={current.remarks} listenSeconds={position} />
+                  <SongExtras remarks={current.remarks} listenSeconds={position} isAdmin={isAdmin} duration={duration} />
                 </TabsContent>
               </Tabs>
             </SheetContent>

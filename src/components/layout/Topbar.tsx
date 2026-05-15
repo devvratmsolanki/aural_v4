@@ -19,7 +19,7 @@ const fmt = (s: number) => {
 
 interface Notif {
   id: string;
-  type: "voice_note" | "letter";
+  type: "voice_note" | "letter" | "private_note";
   song_id: string;
   song_title: string;
   sender_name: string;
@@ -59,7 +59,7 @@ export const Topbar = () => {
         (payload) => {
           const n = payload.new as Notif;
           setNotifs((prev) => [n, ...prev]);
-          const label = n.type === "voice_note" ? "voice note 🎤" : "letter 💌";
+          const label = n.type === "voice_note" ? "voice note 🎤" : n.type === "private_note" ? "private note 🔒" : "letter 💌";
           toast(`${n.sender_name} sent you a ${label}`, { description: n.song_title });
         }
       )
@@ -147,11 +147,11 @@ export const Topbar = () => {
                 )}
                 {notifs.map((n) => (
                   <div key={n.id} className={`p-3 border-b border-border last:border-0 flex items-start gap-3 ${!n.read_at ? "bg-primary/5" : ""}`}>
-                    <span className="text-base shrink-0 mt-0.5">{n.type === "voice_note" ? "🎤" : "💌"}</span>
+                    <span className="text-base shrink-0 mt-0.5">{n.type === "voice_note" ? "🎤" : n.type === "private_note" ? "🔒" : "💌"}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm leading-snug">
                         <span className="font-medium">{n.sender_name}</span>{" "}
-                        left you a {n.type === "voice_note" ? "voice note" : "letter"}
+                        left you a {n.type === "voice_note" ? "voice note" : n.type === "private_note" ? "private note" : "letter"}
                       </p>
                       {n.song_title && (
                         <p className="text-xs text-muted-foreground truncate mt-0.5">{n.song_title}</p>
