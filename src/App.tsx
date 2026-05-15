@@ -48,37 +48,35 @@ const RequireAuth = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => (
   <ErrorBoundary>
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <PlayerProvider>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route element={<RequireAuth><AppShell /></RequireAuth>}>
-                <Route path="/" element={<Home />} />
-                <Route path="/search" element={<Search />} />
-                <Route path="/liked" element={<Liked />} />
-                <Route path="/profile" element={<Profile />} />
-              </Route>
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="songs" element={<AdminSongs />} />
-                <Route path="tags" element={<AdminTags />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="analytics" element={<AdminAnalytics />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </PlayerProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <PlayerProvider>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route element={<RequireAuth><AppShell /></RequireAuth>}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/search" element={<Search />} />
+                  <Route path="/liked" element={<Liked />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="songs" element={<AdminSongs />} />
+                  <Route path="tags" element={<AdminTags />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="analytics" element={<AdminAnalytics />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </PlayerProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   </ErrorBoundary>
 );
 

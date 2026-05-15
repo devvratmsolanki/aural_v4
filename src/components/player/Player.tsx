@@ -38,7 +38,7 @@ export const Player = () => {
   const { user } = useAuth();
   const [liked, setLiked] = useState(false);
   const [extrasOpen, setExtrasOpen] = useState(false);
-  const [extrasTab, setExtrasTab] = useState<"lyrics" | "letters">("lyrics");
+  const [extrasTab, setExtrasTab] = useState<"lyrics" | "notes">("lyrics");
   const [fullOpen, setFullOpen] = useState(false);
   const [lastVolume, setLastVolume] = useState(0.8);
   const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -148,7 +148,7 @@ export const Player = () => {
               <Tabs value={extrasTab} onValueChange={(v) => setExtrasTab(v as any)} className="flex-1 flex flex-col min-h-0">
                 <TabsList className="grid grid-cols-2 mx-6 mt-4 shrink-0">
                   <TabsTrigger value="lyrics"><Mic2 className="h-3.5 w-3.5 mr-1.5" /> Lyrics {timed && <span className="ml-1.5 text-[9px] text-primary">●</span>}</TabsTrigger>
-                  <TabsTrigger value="letters"><StickyNote className="h-3.5 w-3.5 mr-1.5" /> Letters</TabsTrigger>
+                  <TabsTrigger value="notes"><StickyNote className="h-3.5 w-3.5 mr-1.5" /> Notes</TabsTrigger>
                 </TabsList>
                 <TabsContent value="lyrics" className="flex-1 overflow-y-auto px-6 pb-8 mt-2">
                   {timed ? (
@@ -178,8 +178,8 @@ export const Player = () => {
                     <p className="mt-6 text-sm text-muted-foreground italic">No lyrics for this song yet.</p>
                   )}
                 </TabsContent>
-                <TabsContent value="letters" className="flex-1 overflow-y-auto px-6 pb-8 mt-2">
-                  <SongExtras songId={current.id} songTitle={current.title} listenSeconds={position} />
+                <TabsContent value="notes" className="flex-1 overflow-y-auto px-6 pb-8 mt-2">
+                  <SongExtras remarks={current.remarks} listenSeconds={position} />
                 </TabsContent>
               </Tabs>
             </SheetContent>
@@ -237,7 +237,7 @@ export const Player = () => {
               )}
               <div className="flex items-center gap-5 flex-wrap justify-center">
                 <button onClick={() => { setFullOpen(false); setExtrasTab("lyrics"); setExtrasOpen(true); }} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"><Mic2 className="h-4 w-4" /> Lyrics</button>
-                <button onClick={() => { setFullOpen(false); setExtrasTab("letters"); setExtrasOpen(true); }} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"><StickyNote className="h-4 w-4" /> Letters</button>
+                <button onClick={() => { setFullOpen(false); setExtrasTab("notes"); setExtrasOpen(true); }} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"><StickyNote className="h-4 w-4" /> Notes</button>
                 <button onClick={toggleLike} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"><Heart className={`h-4 w-4 ${liked ? "fill-primary text-primary" : ""}`} /> {liked ? "Liked" : "Like"}</button>
               </div>
             </div>
